@@ -1,0 +1,8 @@
+mybatis-config.xml 配置文件的解析
+
+xml文件解析
+	dom,sax,stax
+	xpath简介 对xml文件的解析 类似sql与数据库
+	
+XPathParser 对XPath,Document,EntityResolver
+GenericTokenParser 通用的占位符解析器
