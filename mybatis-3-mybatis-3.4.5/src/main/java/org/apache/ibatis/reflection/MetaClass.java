@@ -28,20 +28,22 @@ import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
  * @author Clinton Begin 通过Reflecto和PropertyTokenizer组合使用，实现对复杂的属性表达式的解析
+ *         MyBatis是对类级别的元信息的封装和处理
  */
 public class MetaClass {
 	// 缓存Reflector对象
 	private final ReflectorFactory reflectorFactory;
 	// 创建MetaClass对象的时候，会制定一个类，该Reflector对象记录该类相关的元信息
 	private final Reflector reflector;
-	
+
 	// 构造方法私有化
 	private MetaClass(Class<?> type, ReflectorFactory reflectorFactory) {
 		this.reflectorFactory = reflectorFactory;
 		// 创建reflector对象
 		this.reflector = reflectorFactory.findForClass(type);
 	}
-	//静态方法创建MetaClass对象
+
+	// 静态方法创建MetaClass对象
 	public static MetaClass forClass(Class<?> type, ReflectorFactory reflectorFactory) {
 		return new MetaClass(type, reflectorFactory);
 	}
@@ -176,20 +178,20 @@ public class MetaClass {
 		// 解析属性表达式
 		PropertyTokenizer prop = new PropertyTokenizer(name);
 		// 是否还有子表达式
-		if (prop.hasNext()) { 
-			//查找当前name对应的属性
+		if (prop.hasNext()) {
+			// 查找当前name对应的属性
 			String propertyName = reflector.findPropertyName(prop.getName());
 			if (propertyName != null) {
-				//追加属性名
+				// 追加属性名
 				builder.append(propertyName);
 				builder.append(".");
 				// 为该属性创建新的MetaClass对象
 				MetaClass metaProp = metaClassForProperty(propertyName);
-				//继续解析
+				// 继续解析
 				metaProp.buildProperty(prop.getChildren(), builder);
 			}
 		} else {
-			//递归出口
+			// 递归出口
 			String propertyName = reflector.findPropertyName(name);
 			if (propertyName != null) {
 				builder.append(propertyName);

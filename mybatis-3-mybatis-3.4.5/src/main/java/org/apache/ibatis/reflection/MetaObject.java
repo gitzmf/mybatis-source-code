@@ -31,135 +31,157 @@ import org.apache.ibatis.reflection.wrapper.ObjectWrapperFactory;
  * @author Clinton Begin
  */
 public class MetaObject {
+	//原始JavaBean对象
+	private final Object originalObject;
+	//上文介绍的ObjectWrapper对象，其中封装了originalObject对象
+	private final ObjectWrapper objectWrapper;
+	//负责实例化originalObject的工厂对象
+	private final ObjectFactory objectFactory;
+	//负责创建ObjectWrapper的工厂对象
+	private final ObjectWrapperFactory objectWrapperFactory;
+	//负责创建并缓存Reflector对象的工厂对象
+	private final ReflectorFactory reflectorFactory;
+	
+	//根据传入的原始对象的类型以及ObjectFactory工厂的实现，创建相应的ObjectWrapper对象
+	private MetaObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory,
+			ReflectorFactory reflectorFactory) {
+		//初始化上述字段
+		this.originalObject = object;
+		this.objectFactory = objectFactory;
+		this.objectWrapperFactory = objectWrapperFactory;
+		this.reflectorFactory = reflectorFactory;
+		
+		if (object instanceof ObjectWrapper) {
+			//如果原始对象已经是ObjectWrapper对象，则直接使用
+			this.objectWrapper = (ObjectWrapper) object;
+		} else if (objectWrapperFactory.hasWrapperFor(object)) {
+			//若ObjectWrapperFactory能够为原始对象创建对应的ObjectWrapper对象，则优先使用
+			//ObjectWrapperFactory，而DefaultObjectWrapperFactory.hasWrapperFor()
+			//始终返回false,用户可以自定义进行扩展
+			this.objectWrapper = objectWrapperFactory.getWrapperFor(this, object);
+		} else if (object instanceof Map) {
+			//若原始对象是Map类型，则创建MapWrapper对象
+			this.objectWrapper = new MapWrapper(this, (Map) object);
+		} else if (object instanceof Collection) {
+			//若原始对象为Collection类型，则创建CollectionWrapper对象
+			this.objectWrapper = new CollectionWrapper(this, (Collection) object);
+		} else {
+			//若原始对象为普通的JavaBean对象，则创建BeanWrapper对象
+			this.objectWrapper = new BeanWrapper(this, object);
+		}
+	}
+	
+	//因为方法私有化，类只能通过forObject方法创建MetaObject对象
+	public static MetaObject forObject(Object object, ObjectFactory objectFactory,
+			ObjectWrapperFactory objectWrapperFactory, ReflectorFactory reflectorFactory) {
+		if (object == null) {
+			//返回标记对象
+			return SystemMetaObject.NULL_META_OBJECT;
+		} else {
+			return new MetaObject(object, objectFactory, objectWrapperFactory, reflectorFactory);
+		}
+	}
 
-  private final Object originalObject;
-  private final ObjectWrapper objectWrapper;
-  private final ObjectFactory objectFactory;
-  private final ObjectWrapperFactory objectWrapperFactory;
-  private final ReflectorFactory reflectorFactory;
+	public ObjectFactory getObjectFactory() {
+		return objectFactory;
+	}
 
-  private MetaObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory, ReflectorFactory reflectorFactory) {
-    this.originalObject = object;
-    this.objectFactory = objectFactory;
-    this.objectWrapperFactory = objectWrapperFactory;
-    this.reflectorFactory = reflectorFactory;
+	public ObjectWrapperFactory getObjectWrapperFactory() {
+		return objectWrapperFactory;
+	}
 
-    if (object instanceof ObjectWrapper) {
-      this.objectWrapper = (ObjectWrapper) object;
-    } else if (objectWrapperFactory.hasWrapperFor(object)) {
-      this.objectWrapper = objectWrapperFactory.getWrapperFor(this, object);
-    } else if (object instanceof Map) {
-      this.objectWrapper = new MapWrapper(this, (Map) object);
-    } else if (object instanceof Collection) {
-      this.objectWrapper = new CollectionWrapper(this, (Collection) object);
-    } else {
-      this.objectWrapper = new BeanWrapper(this, object);
-    }
-  }
+	public ReflectorFactory getReflectorFactory() {
+		return reflectorFactory;
+	}
 
-  public static MetaObject forObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory, ReflectorFactory reflectorFactory) {
-    if (object == null) {
-      return SystemMetaObject.NULL_META_OBJECT;
-    } else {
-      return new MetaObject(object, objectFactory, objectWrapperFactory, reflectorFactory);
-    }
-  }
+	public Object getOriginalObject() {
+		return originalObject;
+	}
 
-  public ObjectFactory getObjectFactory() {
-    return objectFactory;
-  }
+	public String findProperty(String propName, boolean useCamelCaseMapping) {
+		return objectWrapper.findProperty(propName, useCamelCaseMapping);
+	}
 
-  public ObjectWrapperFactory getObjectWrapperFactory() {
-    return objectWrapperFactory;
-  }
+	public String[] getGetterNames() {
+		return objectWrapper.getGetterNames();
+	}
 
-  public ReflectorFactory getReflectorFactory() {
-	return reflectorFactory;
-  }
+	public String[] getSetterNames() {
+		return objectWrapper.getSetterNames();
+	}
 
-  public Object getOriginalObject() {
-    return originalObject;
-  }
+	public Class<?> getSetterType(String name) {
+		return objectWrapper.getSetterType(name);
+	}
 
-  public String findProperty(String propName, boolean useCamelCaseMapping) {
-    return objectWrapper.findProperty(propName, useCamelCaseMapping);
-  }
+	public Class<?> getGetterType(String name) {
+		return objectWrapper.getGetterType(name);
+	}
 
-  public String[] getGetterNames() {
-    return objectWrapper.getGetterNames();
-  }
+	public boolean hasSetter(String name) {
+		return objectWrapper.hasSetter(name);
+	}
 
-  public String[] getSetterNames() {
-    return objectWrapper.getSetterNames();
-  }
+	public boolean hasGetter(String name) {
+		return objectWrapper.hasGetter(name);
+	}
 
-  public Class<?> getSetterType(String name) {
-    return objectWrapper.getSetterType(name);
-  }
+	public Object getValue(String name) {
+		//解析属性表达式
+		PropertyTokenizer prop = new PropertyTokenizer(name);
+		//处理子表达式
+		if (prop.hasNext()) {
+			//根据PropertyTokenizer解析后指定的属性，创建相应MetaObject对象
+			MetaObject metaValue = metaObjectForProperty(prop.getIndexedName());
+			if (metaValue == SystemMetaObject.NULL_META_OBJECT) {
+				return null;
+			} else {
+				//递归处理子表达式
+				return metaValue.getValue(prop.getChildren());
+			}
+		} else {
+			//获取指定的属性值
+			return objectWrapper.get(prop);
+		}
+	}
 
-  public Class<?> getGetterType(String name) {
-    return objectWrapper.getGetterType(name);
-  }
+	public void setValue(String name, Object value) {
+		PropertyTokenizer prop = new PropertyTokenizer(name);
+		if (prop.hasNext()) {
+			MetaObject metaValue = metaObjectForProperty(prop.getIndexedName());
+			if (metaValue == SystemMetaObject.NULL_META_OBJECT) {
+				if (value == null && prop.getChildren() != null) {
+					// don't instantiate child path if value is null
+					return;
+				} else {
+					metaValue = objectWrapper.instantiatePropertyValue(name, prop, objectFactory);
+				}
+			}
+			metaValue.setValue(prop.getChildren(), value);
+		} else {
+			objectWrapper.set(prop, value);
+		}
+	}
 
-  public boolean hasSetter(String name) {
-    return objectWrapper.hasSetter(name);
-  }
+	public MetaObject metaObjectForProperty(String name) {
+		Object value = getValue(name);
+		return MetaObject.forObject(value, objectFactory, objectWrapperFactory, reflectorFactory);
+	}
 
-  public boolean hasGetter(String name) {
-    return objectWrapper.hasGetter(name);
-  }
+	public ObjectWrapper getObjectWrapper() {
+		return objectWrapper;
+	}
 
-  public Object getValue(String name) {
-    PropertyTokenizer prop = new PropertyTokenizer(name);
-    if (prop.hasNext()) {
-      MetaObject metaValue = metaObjectForProperty(prop.getIndexedName());
-      if (metaValue == SystemMetaObject.NULL_META_OBJECT) {
-        return null;
-      } else {
-        return metaValue.getValue(prop.getChildren());
-      }
-    } else {
-      return objectWrapper.get(prop);
-    }
-  }
+	public boolean isCollection() {
+		return objectWrapper.isCollection();
+	}
 
-  public void setValue(String name, Object value) {
-    PropertyTokenizer prop = new PropertyTokenizer(name);
-    if (prop.hasNext()) {
-      MetaObject metaValue = metaObjectForProperty(prop.getIndexedName());
-      if (metaValue == SystemMetaObject.NULL_META_OBJECT) {
-        if (value == null && prop.getChildren() != null) {
-          // don't instantiate child path if value is null
-          return;
-        } else {
-          metaValue = objectWrapper.instantiatePropertyValue(name, prop, objectFactory);
-        }
-      }
-      metaValue.setValue(prop.getChildren(), value);
-    } else {
-      objectWrapper.set(prop, value);
-    }
-  }
+	public void add(Object element) {
+		objectWrapper.add(element);
+	}
 
-  public MetaObject metaObjectForProperty(String name) {
-    Object value = getValue(name);
-    return MetaObject.forObject(value, objectFactory, objectWrapperFactory, reflectorFactory);
-  }
-
-  public ObjectWrapper getObjectWrapper() {
-    return objectWrapper;
-  }
-
-  public boolean isCollection() {
-    return objectWrapper.isCollection();
-  }
-
-  public void add(Object element) {
-    objectWrapper.add(element);
-  }
-
-  public <E> void addAll(List<E> list) {
-    objectWrapper.addAll(list);
-  }
+	public <E> void addAll(List<E> list) {
+		objectWrapper.addAll(list);
+	}
 
 }

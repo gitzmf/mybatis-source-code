@@ -22,15 +22,18 @@ import org.apache.ibatis.reflection.ReflectionException;
  * @author Clinton Begin
  */
 public class DefaultObjectWrapperFactory implements ObjectWrapperFactory {
-
-  @Override
-  public boolean hasWrapperFor(Object object) {
-    return false;
-  }
-
-  @Override
-  public ObjectWrapper getWrapperFor(MetaObject metaObject, Object object) {
-    throw new ReflectionException("The DefaultObjectWrapperFactory should never be called to provide an ObjectWrapper.");
-  }
+	
+	//始终返回false，实际不可用
+	@Override
+	public boolean hasWrapperFor(Object object) {
+		return false;
+	}
+	
+	//始终抛出异常，实际不可用的
+	@Override
+	public ObjectWrapper getWrapperFor(MetaObject metaObject, Object object) {
+		throw new ReflectionException(
+				"The DefaultObjectWrapperFactory should never be called to provide an ObjectWrapper.");
+	}
 
 }
