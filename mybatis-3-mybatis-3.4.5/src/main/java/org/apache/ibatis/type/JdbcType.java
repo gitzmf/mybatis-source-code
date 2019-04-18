@@ -21,6 +21,7 @@ import java.util.Map;
 
 /**
  * @author Clinton Begin
+ * jdbc类型和java.sql.Types相应的常量编码
  */
 public enum JdbcType {
   /*
@@ -68,6 +69,7 @@ public enum JdbcType {
   DATETIMEOFFSET(-155); // SQL Server 2008
 
   public final int TYPE_CODE;
+  //静态集合，维护常量编码和jdbcTyoe之间对应关系
   private static Map<Integer,JdbcType> codeLookup = new HashMap<Integer,JdbcType>();
 
   static {

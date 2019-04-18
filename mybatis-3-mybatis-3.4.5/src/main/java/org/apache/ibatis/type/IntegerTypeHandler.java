@@ -25,27 +25,28 @@ import java.sql.SQLException;
  */
 public class IntegerTypeHandler extends BaseTypeHandler<Integer> {
 
-  @Override
-  public void setNonNullParameter(PreparedStatement ps, int i, Integer parameter, JdbcType jdbcType)
-      throws SQLException {
-    ps.setInt(i, parameter);
-  }
+	@Override
+	public void setNonNullParameter(PreparedStatement ps, int i, Integer parameter, JdbcType jdbcType)
+			throws SQLException {
+		//调用PreparedStatement的setInt()方法绑定参数
+		ps.setInt(i, parameter);
+	}
 
-  @Override
-  public Integer getNullableResult(ResultSet rs, String columnName)
-      throws SQLException {
-    return rs.getInt(columnName);
-  }
+	@Override
+	public Integer getNullableResult(ResultSet rs, String columnName) throws SQLException {
+		//调用ResultSet的getInt()方法获取指定列值
+		return rs.getInt(columnName);
+	}
 
-  @Override
-  public Integer getNullableResult(ResultSet rs, int columnIndex)
-      throws SQLException {
-    return rs.getInt(columnIndex);
-  }
+	@Override
+	public Integer getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+		//调用ResultSet的getInt()方法获取指定列值
+		return rs.getInt(columnIndex);
+	}
 
-  @Override
-  public Integer getNullableResult(CallableStatement cs, int columnIndex)
-      throws SQLException {
-    return cs.getInt(columnIndex);
-  }
+	@Override
+	public Integer getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
+		//调用ResultSet的getInt()方法获取指定列值
+		return cs.getInt(columnIndex);
+	}
 }

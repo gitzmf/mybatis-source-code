@@ -25,91 +25,102 @@ import org.apache.ibatis.session.Configuration;
 
 /**
  * @author Clinton Begin
- * @author Simone Tripodi
+ * @author Simone Tripodi 抽象的类型处理接口实现类
  */
 public abstract class BaseTypeHandler<T> extends TypeReference<T> implements TypeHandler<T> {
 
-  protected Configuration configuration;
+	protected Configuration configuration;
 
-  public void setConfiguration(Configuration c) {
-    this.configuration = c;
-  }
+	public void setConfiguration(Configuration c) {
+		this.configuration = c;
+	}
 
-  @Override
-  public void setParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException {
-    if (parameter == null) {
-      if (jdbcType == null) {
-        throw new TypeException("JDBC requires that the JdbcType must be specified for all nullable parameters.");
-      }
-      try {
-        ps.setNull(i, jdbcType.TYPE_CODE);
-      } catch (SQLException e) {
-        throw new TypeException("Error setting null for parameter #" + i + " with JdbcType " + jdbcType + " . " +
-                "Try setting a different JdbcType for this parameter or a different jdbcTypeForNull configuration property. " +
-                "Cause: " + e, e);
-      }
-    } else {
-      try {
-        setNonNullParameter(ps, i, parameter, jdbcType);
-      } catch (Exception e) {
-        throw new TypeException("Error setting non null for parameter #" + i + " with JdbcType " + jdbcType + " . " +
-                "Try setting a different JdbcType for this parameter or a different configuration property. " +
-                "Cause: " + e, e);
-      }
-    }
-  }
+	@Override
+	public void setParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException {
+		if (parameter == null) {
+			if (jdbcType == null) {
+				throw new TypeException(
+						"JDBC requires that the JdbcType must be specified for all nullable parameters.");
+			}
+			try {
+				//绑定参数为null的处理
+				ps.setNull(i, jdbcType.TYPE_CODE);
+			} catch (SQLException e) {
+				throw new TypeException("Error setting null for parameter #" + i + " with JdbcType " + jdbcType + " . "
+						+ "Try setting a different JdbcType for this parameter or a different jdbcTypeForNull configuration property. "
+						+ "Cause: " + e, e);
+			}
+		} else {
+			try {
+				//绑定非空参数，该方法为抽象方法，由子类实现
+				setNonNullParameter(ps, i, parameter, jdbcType);
+			} catch (Exception e) {
+				throw new TypeException(
+						"Error setting non null for parameter #" + i + " with JdbcType " + jdbcType + " . "
+								+ "Try setting a different JdbcType for this parameter or a different configuration property. "
+								+ "Cause: " + e,
+						e);
+			}
+		}
+	}
 
-  @Override
-  public T getResult(ResultSet rs, String columnName) throws SQLException {
-    T result;
-    try {
-      result = getNullableResult(rs, columnName);
-    } catch (Exception e) {
-      throw new ResultMapException("Error attempting to get column '" + columnName + "' from result set.  Cause: " + e, e);
-    }
-    if (rs.wasNull()) {
-      return null;
-    } else {
-      return result;
-    }
-  }
+	@Override
+	public T getResult(ResultSet rs, String columnName) throws SQLException {
+		T result;
+		try {
+			result = getNullableResult(rs, columnName);
+		} catch (Exception e) {
+			throw new ResultMapException(
+					"Error attempting to get column '" + columnName + "' from result set.  Cause: " + e, e);
+		}
+		if (rs.wasNull()) {
+			return null;
+		} else {
+			return result;
+		}
+	}
 
-  @Override
-  public T getResult(ResultSet rs, int columnIndex) throws SQLException {
-    T result;
-    try {
-      result = getNullableResult(rs, columnIndex);
-    } catch (Exception e) {
-      throw new ResultMapException("Error attempting to get column #" + columnIndex+ " from result set.  Cause: " + e, e);
-    }
-    if (rs.wasNull()) {
-      return null;
-    } else {
-      return result;
-    }
-  }
+	@Override
+	public T getResult(ResultSet rs, int columnIndex) throws SQLException {
+		T result;
+		try {
+			result = getNullableResult(rs, columnIndex);
+		} catch (Exception e) {
+			throw new ResultMapException(
+					"Error attempting to get column #" + columnIndex + " from result set.  Cause: " + e, e);
+		}
+		if (rs.wasNull()) {
+			return null;
+		} else {
+			return result;
+		}
+	}
 
-  @Override
-  public T getResult(CallableStatement cs, int columnIndex) throws SQLException {
-    T result;
-    try {
-      result = getNullableResult(cs, columnIndex);
-    } catch (Exception e) {
-      throw new ResultMapException("Error attempting to get column #" + columnIndex+ " from callable statement.  Cause: " + e, e);
-    }
-    if (cs.wasNull()) {
-      return null;
-    } else {
-      return result;
-    }
-  }
+	@Override
+	public T getResult(CallableStatement cs, int columnIndex) throws SQLException {
+		T result;
+		try {
+			//抽象方法,多个重载，有子类实现
+			result = getNullableResult(cs, columnIndex);
+		} catch (Exception e) {
+			throw new ResultMapException(
+					"Error attempting to get column #" + columnIndex + " from callable statement.  Cause: " + e, e);
+		}
+		if (cs.wasNull()) {
+			//对空值的特殊处理
+			return null;
+		} else {
+			return result;
+		}
+	}
 
-  public abstract void setNonNullParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException;
+	public abstract void setNonNullParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType)
+			throws SQLException;
 
-  public abstract T getNullableResult(ResultSet rs, String columnName) throws SQLException;
+	public abstract T getNullableResult(ResultSet rs, String columnName) throws SQLException;
 
-  public abstract T getNullableResult(ResultSet rs, int columnIndex) throws SQLException;
+	public abstract T getNullableResult(ResultSet rs, int columnIndex) throws SQLException;
 
-  public abstract T getNullableResult(CallableStatement cs, int columnIndex) throws SQLException;
+	public abstract T getNullableResult(CallableStatement cs, int columnIndex) throws SQLException;
 
 }
