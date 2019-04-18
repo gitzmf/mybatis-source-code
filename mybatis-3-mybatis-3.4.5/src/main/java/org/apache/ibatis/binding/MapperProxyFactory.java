@@ -23,33 +23,36 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.ibatis.session.SqlSession;
 
 /**
- * @author Lasse Voss
+ * @author Lasse Voss 用于创建Mapper接口的对应代理对象
  */
 public class MapperProxyFactory<T> {
+	// Mapper接口对应的class对象
+	private final Class<T> mapperInterface;
+	// 缓存，key是mapperInterface接口中某个对应的Method对象，value是对应的MapperMethod对象
+	private final Map<Method, MapperMethod> methodCache = new ConcurrentHashMap<Method, MapperMethod>();
 
-  private final Class<T> mapperInterface;
-  private final Map<Method, MapperMethod> methodCache = new ConcurrentHashMap<Method, MapperMethod>();
+	public MapperProxyFactory(Class<T> mapperInterface) {
+		this.mapperInterface = mapperInterface;
+	}
 
-  public MapperProxyFactory(Class<T> mapperInterface) {
-    this.mapperInterface = mapperInterface;
-  }
+	public Class<T> getMapperInterface() {
+		return mapperInterface;
+	}
 
-  public Class<T> getMapperInterface() {
-    return mapperInterface;
-  }
+	public Map<Method, MapperMethod> getMethodCache() {
+		return methodCache;
+	}
 
-  public Map<Method, MapperMethod> getMethodCache() {
-    return methodCache;
-  }
-
-  @SuppressWarnings("unchecked")
-  protected T newInstance(MapperProxy<T> mapperProxy) {
-    return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] { mapperInterface }, mapperProxy);
-  }
-
-  public T newInstance(SqlSession sqlSession) {
-    final MapperProxy<T> mapperProxy = new MapperProxy<T>(sqlSession, mapperInterface, methodCache);
-    return newInstance(mapperProxy);
-  }
+	@SuppressWarnings("unchecked")
+	protected T newInstance(MapperProxy<T> mapperProxy) {
+		return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] { mapperInterface },
+				mapperProxy);
+	}
+	
+	//创建接口的代理对象
+	public T newInstance(SqlSession sqlSession) {
+		final MapperProxy<T> mapperProxy = new MapperProxy<T>(sqlSession, mapperInterface, methodCache);
+		return newInstance(mapperProxy);
+	}
 
 }

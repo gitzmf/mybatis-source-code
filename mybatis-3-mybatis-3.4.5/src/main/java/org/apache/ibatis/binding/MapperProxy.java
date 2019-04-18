@@ -29,67 +29,73 @@ import org.apache.ibatis.session.SqlSession;
 
 /**
  * @author Clinton Begin
- * @author Eduardo Macarron
+ * @author Eduardo Macarron Mapper接口代理对象
  */
 public class MapperProxy<T> implements InvocationHandler, Serializable {
 
-  private static final long serialVersionUID = -6424540398559729838L;
-  private final SqlSession sqlSession;
-  private final Class<T> mapperInterface;
-  private final Map<Method, MapperMethod> methodCache;
+	private static final long serialVersionUID = -6424540398559729838L;
+	// 记录关联的SqlSession对象
+	private final SqlSession sqlSession;
+	// 记录了Mapper接口对应的Class对象
+	private final Class<T> mapperInterface;
+	// 缓存，key是mapperInterface接口中某个对应的Method对象，value是对应的MapperMethod对象
+	private final Map<Method, MapperMethod> methodCache;
 
-  public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethod> methodCache) {
-    this.sqlSession = sqlSession;
-    this.mapperInterface = mapperInterface;
-    this.methodCache = methodCache;
-  }
+	public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethod> methodCache) {
+		this.sqlSession = sqlSession;
+		this.mapperInterface = mapperInterface;
+		this.methodCache = methodCache;
+	}
 
-  @Override
-  public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-    try {
-      if (Object.class.equals(method.getDeclaringClass())) {
-        return method.invoke(this, args);
-      } else if (isDefaultMethod(method)) {
-        return invokeDefaultMethod(proxy, method, args);
-      }
-    } catch (Throwable t) {
-      throw ExceptionUtil.unwrapThrowable(t);
-    }
-    final MapperMethod mapperMethod = cachedMapperMethod(method);
-    return mapperMethod.execute(sqlSession, args);
-  }
+	// 实现代理对象执行的主要逻辑
+	@Override
+	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		try {
+			// 如果目标对象直接继承自Object对象，直接调用目标方法
+			if (Object.class.equals(method.getDeclaringClass())) {
+				return method.invoke(this, args);
+			} else if (isDefaultMethod(method)) {
+				// java8以上动态语言的支持
+				return invokeDefaultMethod(proxy, method, args);
+			}
+		} catch (Throwable t) {
+			throw ExceptionUtil.unwrapThrowable(t);
+		}
+		// 缓存中获取mapperMethod对象，如果没有则新建对象并添加到缓存中
+		final MapperMethod mapperMethod = cachedMapperMethod(method);
+		// 调用MapperMethod。execute()方法执行sql语句
+		return mapperMethod.execute(sqlSession, args);
+	}
 
-  private MapperMethod cachedMapperMethod(Method method) {
-    MapperMethod mapperMethod = methodCache.get(method);
-    if (mapperMethod == null) {
-      mapperMethod = new MapperMethod(mapperInterface, method, sqlSession.getConfiguration());
-      methodCache.put(method, mapperMethod);
-    }
-    return mapperMethod;
-  }
+	private MapperMethod cachedMapperMethod(Method method) {
+		MapperMethod mapperMethod = methodCache.get(method);
+		if (mapperMethod == null) {
+			mapperMethod = new MapperMethod(mapperInterface, method, sqlSession.getConfiguration());
+			methodCache.put(method, mapperMethod);
+		}
+		return mapperMethod;
+	}
 
-  @UsesJava7
-  private Object invokeDefaultMethod(Object proxy, Method method, Object[] args)
-      throws Throwable {
-    final Constructor<MethodHandles.Lookup> constructor = MethodHandles.Lookup.class
-        .getDeclaredConstructor(Class.class, int.class);
-    if (!constructor.isAccessible()) {
-      constructor.setAccessible(true);
-    }
-    final Class<?> declaringClass = method.getDeclaringClass();
-    return constructor
-        .newInstance(declaringClass,
-            MethodHandles.Lookup.PRIVATE | MethodHandles.Lookup.PROTECTED
-                | MethodHandles.Lookup.PACKAGE | MethodHandles.Lookup.PUBLIC)
-        .unreflectSpecial(method, declaringClass).bindTo(proxy).invokeWithArguments(args);
-  }
+	@UsesJava7
+	private Object invokeDefaultMethod(Object proxy, Method method, Object[] args) throws Throwable {
+		final Constructor<MethodHandles.Lookup> constructor = MethodHandles.Lookup.class
+				.getDeclaredConstructor(Class.class, int.class);
+		if (!constructor.isAccessible()) {
+			constructor.setAccessible(true);
+		}
+		final Class<?> declaringClass = method.getDeclaringClass();
+		return constructor
+				.newInstance(declaringClass,
+						MethodHandles.Lookup.PRIVATE | MethodHandles.Lookup.PROTECTED | MethodHandles.Lookup.PACKAGE
+								| MethodHandles.Lookup.PUBLIC)
+				.unreflectSpecial(method, declaringClass).bindTo(proxy).invokeWithArguments(args);
+	}
 
-  /**
-   * Backport of java.lang.reflect.Method#isDefault()
-   */
-  private boolean isDefaultMethod(Method method) {
-    return ((method.getModifiers()
-        & (Modifier.ABSTRACT | Modifier.PUBLIC | Modifier.STATIC)) == Modifier.PUBLIC)
-        && method.getDeclaringClass().isInterface();
-  }
+	/**
+	 * Backport of java.lang.reflect.Method#isDefault()
+	 */
+	private boolean isDefaultMethod(Method method) {
+		return ((method.getModifiers() & (Modifier.ABSTRACT | Modifier.PUBLIC | Modifier.STATIC)) == Modifier.PUBLIC)
+				&& method.getDeclaringClass().isInterface();
+	}
 }
