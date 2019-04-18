@@ -26,72 +26,72 @@ import org.apache.ibatis.cache.CacheException;
  * @author Clinton Begin
  */
 public class PerpetualCache implements Cache {
+	//cache对象的基本标识
+	private final String id;
+	//用于记录缓存项的map对象
+	private Map<Object, Object> cache = new HashMap<Object, Object>();
 
-  private final String id;
+	public PerpetualCache(String id) {
+		this.id = id;
+	}
 
-  private Map<Object, Object> cache = new HashMap<Object, Object>();
+	@Override
+	public String getId() {
+		return id;
+	}
 
-  public PerpetualCache(String id) {
-    this.id = id;
-  }
+	@Override
+	public int getSize() {
+		return cache.size();
+	}
 
-  @Override
-  public String getId() {
-    return id;
-  }
+	@Override
+	public void putObject(Object key, Object value) {
+		cache.put(key, value);
+	}
 
-  @Override
-  public int getSize() {
-    return cache.size();
-  }
+	@Override
+	public Object getObject(Object key) {
+		return cache.get(key);
+	}
 
-  @Override
-  public void putObject(Object key, Object value) {
-    cache.put(key, value);
-  }
+	@Override
+	public Object removeObject(Object key) {
+		return cache.remove(key);
+	}
 
-  @Override
-  public Object getObject(Object key) {
-    return cache.get(key);
-  }
+	@Override
+	public void clear() {
+		cache.clear();
+	}
 
-  @Override
-  public Object removeObject(Object key) {
-    return cache.remove(key);
-  }
+	@Override
+	public ReadWriteLock getReadWriteLock() {
+		return null;
+	}
 
-  @Override
-  public void clear() {
-    cache.clear();
-  }
+	@Override
+	public boolean equals(Object o) {
+		if (getId() == null) {
+			throw new CacheException("Cache instances require an ID.");
+		}
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof Cache)) {
+			return false;
+		}
 
-  @Override
-  public ReadWriteLock getReadWriteLock() {
-    return null;
-  }
+		Cache otherCache = (Cache) o;
+		return getId().equals(otherCache.getId());
+	}
 
-  @Override
-  public boolean equals(Object o) {
-    if (getId() == null) {
-      throw new CacheException("Cache instances require an ID.");
-    }
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof Cache)) {
-      return false;
-    }
-
-    Cache otherCache = (Cache) o;
-    return getId().equals(otherCache.getId());
-  }
-
-  @Override
-  public int hashCode() {
-    if (getId() == null) {
-      throw new CacheException("Cache instances require an ID.");
-    }
-    return getId().hashCode();
-  }
+	@Override
+	public int hashCode() {
+		if (getId() == null) {
+			throw new CacheException("Cache instances require an ID.");
+		}
+		return getId().hashCode();
+	}
 
 }
