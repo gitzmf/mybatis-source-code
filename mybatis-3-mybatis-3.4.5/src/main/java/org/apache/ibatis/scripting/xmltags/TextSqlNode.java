@@ -26,84 +26,92 @@ import org.apache.ibatis.type.SimpleTypeRegistry;
  * @author Clinton Begin
  */
 public class TextSqlNode implements SqlNode {
-  private final String text;
-  private final Pattern injectionFilter;
+	private final String text;
+	private final Pattern injectionFilter;
 
-  public TextSqlNode(String text) {
-    this(text, null);
-  }
-  
-  public TextSqlNode(String text, Pattern injectionFilter) {
-    this.text = text;
-    this.injectionFilter = injectionFilter;
-  }
-  
-  public boolean isDynamic() {
-    DynamicCheckerTokenParser checker = new DynamicCheckerTokenParser();
-    GenericTokenParser parser = createParser(checker);
-    parser.parse(text);
-    return checker.isDynamic();
-  }
+	public TextSqlNode(String text) {
+		this(text, null);
+	}
 
-  @Override
-  public boolean apply(DynamicContext context) {
-    GenericTokenParser parser = createParser(new BindingTokenParser(context, injectionFilter));
-    context.appendSql(parser.parse(text));
-    return true;
-  }
-  
-  private GenericTokenParser createParser(TokenHandler handler) {
-    return new GenericTokenParser("${", "}", handler);
-  }
+	public TextSqlNode(String text, Pattern injectionFilter) {
+		this.text = text;
+		this.injectionFilter = injectionFilter;
+	}
+	
+	//判断是否为动态sql
+	public boolean isDynamic() {
+		DynamicCheckerTokenParser checker = new DynamicCheckerTokenParser();
+		//创建GenericTokenParser对象，GenericTokenParser前面已经分析过
+		GenericTokenParser parser = createParser(checker);
+		parser.parse(text);
+		return checker.isDynamic();
+	}
 
-  private static class BindingTokenParser implements TokenHandler {
+	@Override
+	public boolean apply(DynamicContext context) {
+		GenericTokenParser parser = createParser(new BindingTokenParser(context, injectionFilter));
+		context.appendSql(parser.parse(text));
+		return true;
+	}
 
-    private DynamicContext context;
-    private Pattern injectionFilter;
+	private GenericTokenParser createParser(TokenHandler handler) {
+		return new GenericTokenParser("${", "}", handler);
+	}
 
-    public BindingTokenParser(DynamicContext context, Pattern injectionFilter) {
-      this.context = context;
-      this.injectionFilter = injectionFilter;
-    }
+	private static class BindingTokenParser implements TokenHandler {
 
-    @Override
-    public String handleToken(String content) {
-      Object parameter = context.getBindings().get("_parameter");
-      if (parameter == null) {
-        context.getBindings().put("value", null);
-      } else if (SimpleTypeRegistry.isSimpleType(parameter.getClass())) {
-        context.getBindings().put("value", parameter);
-      }
-      Object value = OgnlCache.getValue(content, context.getBindings());
-      String srtValue = (value == null ? "" : String.valueOf(value)); // issue #274 return "" instead of "null"
-      checkInjection(srtValue);
-      return srtValue;
-    }
+		private DynamicContext context;
+		private Pattern injectionFilter;
 
-    private void checkInjection(String value) {
-      if (injectionFilter != null && !injectionFilter.matcher(value).matches()) {
-        throw new ScriptingException("Invalid input. Please conform to regex" + injectionFilter.pattern());
-      }
-    }
-  }
-  
-  private static class DynamicCheckerTokenParser implements TokenHandler {
+		public BindingTokenParser(DynamicContext context, Pattern injectionFilter) {
+			this.context = context;
+			this.injectionFilter = injectionFilter;
+		}
 
-    private boolean isDynamic;
+		@Override
+		public String handleToken(String content) {
+			Object parameter = context.getBindings().get("_parameter");
+			if (parameter == null) {
+				context.getBindings().put("value", null);
+			} else if (SimpleTypeRegistry.isSimpleType(parameter.getClass())) {
+				context.getBindings().put("value", parameter);
+			}
+			Object value = OgnlCache.getValue(content, context.getBindings());
+			String srtValue = (value == null ? "" : String.valueOf(value)); // issue
+																			// #274
+																			// return
+																			// ""
+																			// instead
+																			// of
+																			// "null"
+			checkInjection(srtValue);
+			return srtValue;
+		}
 
-    public DynamicCheckerTokenParser() {
-      // Prevent Synthetic Access
-    }
+		private void checkInjection(String value) {
+			if (injectionFilter != null && !injectionFilter.matcher(value).matches()) {
+				throw new ScriptingException("Invalid input. Please conform to regex" + injectionFilter.pattern());
+			}
+		}
+	}
 
-    public boolean isDynamic() {
-      return isDynamic;
-    }
+	private static class DynamicCheckerTokenParser implements TokenHandler {
 
-    @Override
-    public String handleToken(String content) {
-      this.isDynamic = true;
-      return null;
-    }
-  }
-  
+		private boolean isDynamic;
+
+		public DynamicCheckerTokenParser() {
+			// Prevent Synthetic Access
+		}
+
+		public boolean isDynamic() {
+			return isDynamic;
+		}
+
+		@Override
+		public String handleToken(String content) {
+			this.isDynamic = true;
+			return null;
+		}
+	}
+
 }

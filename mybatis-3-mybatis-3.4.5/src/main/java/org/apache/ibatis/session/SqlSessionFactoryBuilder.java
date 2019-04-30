@@ -27,7 +27,8 @@ import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 
 /**
  * Builds {@link SqlSession} instances.
- *
+ * Mybatis的初始化入口，主要用来加载并解析mybatis-config.xml配置文件
+ * 映射配置文件、以及相关的注解信息
  * @author Clinton Begin
  */
 public class SqlSessionFactoryBuilder {
@@ -43,18 +44,20 @@ public class SqlSessionFactoryBuilder {
 	public SqlSessionFactory build(Reader reader, Properties properties) {
 		return build(reader, null, properties);
 	}
-
+	
+	//MyBatis的初始化接口
 	public SqlSessionFactory build(Reader reader, String environment, Properties properties) {
 		try {
 			// 读取配置文件
 			XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties);
-			//解析配置文件得到Configuration对象，并创建DefaultSqlSessionFactory对象
+			// 解析配置文件得到Configuration对象，并创建DefaultSqlSessionFactory对象
 			return build(parser.parse());
 		} catch (Exception e) {
 			throw ExceptionFactory.wrapException("Error building SqlSession.", e);
 		} finally {
 			ErrorContext.instance().reset();
 			try {
+				//关闭读取配置文件的输入流对象
 				reader.close();
 			} catch (IOException e) {
 				// Intentionally ignore. Prefer previous error.

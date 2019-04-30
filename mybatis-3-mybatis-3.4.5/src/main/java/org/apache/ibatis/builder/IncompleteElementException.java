@@ -16,25 +16,25 @@
 package org.apache.ibatis.builder;
 
 /**
- * @author Eduardo Macarron
+ * @author Eduardo Macarron 当解析一个节点的时候，会引用在该节点之后的、还未解析的节点，这会导致解析失败并抛出该异常对象
  */
 public class IncompleteElementException extends BuilderException {
-  private static final long serialVersionUID = -3697292286890900315L;
+	private static final long serialVersionUID = -3697292286890900315L;
 
-  public IncompleteElementException() {
-    super();
-  }
+	public IncompleteElementException() {
+		super();
+	}
 
-  public IncompleteElementException(String message, Throwable cause) {
-    super(message, cause);
-  }
+	public IncompleteElementException(String message, Throwable cause) {
+		super(message, cause);
+	}
 
-  public IncompleteElementException(String message) {
-    super(message);
-  }
+	public IncompleteElementException(String message) {
+		super(message);
+	}
 
-  public IncompleteElementException(Throwable cause) {
-    super(cause);
-  }
+	public IncompleteElementException(Throwable cause) {
+		super(cause);
+	}
 
 }

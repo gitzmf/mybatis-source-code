@@ -18,18 +18,19 @@ package org.apache.ibatis.builder;
 import org.apache.ibatis.cache.Cache;
 
 /**
- * @author Clinton Begin
+ * @author Clinton Begin 简单的Cache引用解析器，其中封装了被引用的namespace以及当前XMMapperBuilder
+ *         对应的MapperBuilderAssistant
  */
 public class CacheRefResolver {
-  private final MapperBuilderAssistant assistant;
-  private final String cacheRefNamespace;
+	private final MapperBuilderAssistant assistant;
+	private final String cacheRefNamespace;
 
-  public CacheRefResolver(MapperBuilderAssistant assistant, String cacheRefNamespace) {
-    this.assistant = assistant;
-    this.cacheRefNamespace = cacheRefNamespace;
-  }
+	public CacheRefResolver(MapperBuilderAssistant assistant, String cacheRefNamespace) {
+		this.assistant = assistant;
+		this.cacheRefNamespace = cacheRefNamespace;
+	}
 
-  public Cache resolveCacheRef() {
-    return assistant.useCacheRef(cacheRefNamespace);
-  }
+	public Cache resolveCacheRef() {
+		return assistant.useCacheRef(cacheRefNamespace);
+	}
 }
