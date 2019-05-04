@@ -24,6 +24,7 @@ import org.apache.ibatis.type.SimpleTypeRegistry;
 
 /**
  * @author Clinton Begin
+ * 表示的是包含"${}"占位符的动态SQL节点
  */
 public class TextSqlNode implements SqlNode {
 	private final String text;
@@ -37,11 +38,11 @@ public class TextSqlNode implements SqlNode {
 		this.text = text;
 		this.injectionFilter = injectionFilter;
 	}
-	
-	//判断是否为动态sql
+
+	// 判断是否为动态sql
 	public boolean isDynamic() {
 		DynamicCheckerTokenParser checker = new DynamicCheckerTokenParser();
-		//创建GenericTokenParser对象，GenericTokenParser前面已经分析过
+		// 创建GenericTokenParser对象，GenericTokenParser前面已经分析过
 		GenericTokenParser parser = createParser(checker);
 		parser.parse(text);
 		return checker.isDynamic();
@@ -49,17 +50,22 @@ public class TextSqlNode implements SqlNode {
 
 	@Override
 	public boolean apply(DynamicContext context) {
+		//创建解析器
 		GenericTokenParser parser = createParser(new BindingTokenParser(context, injectionFilter));
+		//将解析后的sql片段追加到后面
 		context.appendSql(parser.parse(text));
 		return true;
 	}
-
+	
+	//解析"${}"片段
 	private GenericTokenParser createParser(TokenHandler handler) {
 		return new GenericTokenParser("${", "}", handler);
 	}
-
+	
+	//内部类
+	//根据DynamicContext.bindings集合中的信息解析SQL语句节点中的"${}"占位符
 	private static class BindingTokenParser implements TokenHandler {
-
+		
 		private DynamicContext context;
 		private Pattern injectionFilter;
 
@@ -67,15 +73,18 @@ public class TextSqlNode implements SqlNode {
 			this.context = context;
 			this.injectionFilter = injectionFilter;
 		}
-
+		
+		
 		@Override
 		public String handleToken(String content) {
+			//获取用户提供的实参
 			Object parameter = context.getBindings().get("_parameter");
 			if (parameter == null) {
 				context.getBindings().put("value", null);
 			} else if (SimpleTypeRegistry.isSimpleType(parameter.getClass())) {
 				context.getBindings().put("value", parameter);
 			}
+			//通过OGNL解析content的值
 			Object value = OgnlCache.getValue(content, context.getBindings());
 			String srtValue = (value == null ? "" : String.valueOf(value)); // issue
 																			// #274
@@ -83,7 +92,7 @@ public class TextSqlNode implements SqlNode {
 																			// ""
 																			// instead
 																			// of
-																			// "null"
+			//检测合法性																// "null"
 			checkInjection(srtValue);
 			return srtValue;
 		}

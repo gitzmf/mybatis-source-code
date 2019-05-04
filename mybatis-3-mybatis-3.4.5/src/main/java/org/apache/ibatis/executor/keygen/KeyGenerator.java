@@ -24,9 +24,9 @@ import org.apache.ibatis.mapping.MappedStatement;
  * @author Clinton Begin
  */
 public interface KeyGenerator {
-
-  void processBefore(Executor executor, MappedStatement ms, Statement stmt, Object parameter);
-
-  void processAfter(Executor executor, MappedStatement ms, Statement stmt, Object parameter);
+	//在执行insert语句之前，设置属性order="before"
+	void processBefore(Executor executor, MappedStatement ms, Statement stmt, Object parameter);
+	//在执行insert语句之后，设置属性order="after"
+	void processAfter(Executor executor, MappedStatement ms, Statement stmt, Object parameter);
 
 }

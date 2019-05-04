@@ -27,112 +27,124 @@ import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.session.Configuration;
 
 /**
- * @author Clinton Begin
+ * @author Clinton Begin 记录解析动态sql语句之后产生的sql片段，可以看做是一个容器
  */
 public class DynamicContext {
 
-  public static final String PARAMETER_OBJECT_KEY = "_parameter";
-  public static final String DATABASE_ID_KEY = "_databaseId";
+	public static final String PARAMETER_OBJECT_KEY = "_parameter";
+	public static final String DATABASE_ID_KEY = "_databaseId";
 
-  static {
-    OgnlRuntime.setPropertyAccessor(ContextMap.class, new ContextAccessor());
-  }
+	static {
+		OgnlRuntime.setPropertyAccessor(ContextMap.class, new ContextAccessor());
+	}
+	
+	//参数上下文
+	private final ContextMap bindings;
+	//在SqlNode解析动态sql时，会将解析后的SQL语句片段添加到该属性集合中保存，最终拼接出一条完整的sql语句
+	private final StringBuilder sqlBuilder = new StringBuilder();
+	private int uniqueNumber = 0;
+	
+	//构造方法初始化
+	public DynamicContext(Configuration configuration, Object parameterObject) {
+		//对于非Map类型的参数，会创建对应的MetaObject对象，并封装成ContextMap对象
+		if (parameterObject != null && !(parameterObject instanceof Map)) {
+			MetaObject metaObject = configuration.newMetaObject(parameterObject);
+			bindings = new ContextMap(metaObject);
+		} else {
+			//初始化bindings集合
+			bindings = new ContextMap(null);
+		}
+		//将PARAMETER_OBJECT_KEY->parameterObject这一对应关系添加到bindings集合中
+		//其中PARAMETER_OBJECT_KEY的值为“_parameter”，在有的SqlNode实现中直接使用该字面值
+		bindings.put(PARAMETER_OBJECT_KEY, parameterObject);
+		bindings.put(DATABASE_ID_KEY, configuration.getDatabaseId());
+	}
 
-  private final ContextMap bindings;
-  private final StringBuilder sqlBuilder = new StringBuilder();
-  private int uniqueNumber = 0;
+	public Map<String, Object> getBindings() {
+		return bindings;
+	}
+	
+	public void bind(String name, Object value) {
+		bindings.put(name, value);
+	}
+	
+	//追加sql片段
+	public void appendSql(String sql) {
+		sqlBuilder.append(sql);
+		sqlBuilder.append(" ");
+	}
+	
+	//获取解析后的完整sql语句
+	public String getSql() {
+		return sqlBuilder.toString().trim();
+	}
 
-  public DynamicContext(Configuration configuration, Object parameterObject) {
-    if (parameterObject != null && !(parameterObject instanceof Map)) {
-      MetaObject metaObject = configuration.newMetaObject(parameterObject);
-      bindings = new ContextMap(metaObject);
-    } else {
-      bindings = new ContextMap(null);
-    }
-    bindings.put(PARAMETER_OBJECT_KEY, parameterObject);
-    bindings.put(DATABASE_ID_KEY, configuration.getDatabaseId());
-  }
+	public int getUniqueNumber() {
+		return uniqueNumber++;
+	}
+	
+	//内部类
+	static class ContextMap extends HashMap<String, Object> {
+		private static final long serialVersionUID = 2977601501966151582L;
+		//将用户传入的参数封装成MetaObject对象
+		private MetaObject parameterMetaObject;
 
-  public Map<String, Object> getBindings() {
-    return bindings;
-  }
+		public ContextMap(MetaObject parameterMetaObject) {
+			this.parameterMetaObject = parameterMetaObject;
+		}
+		
+		//重写get方法
+		@Override
+		public Object get(Object key) {
+			String strKey = (String) key;
+			//如果ContextMap中已经包含了key,则直接返回
+			if (super.containsKey(strKey)) {
+				return super.get(strKey);
+			}
+			
+			//从运行时的参数查找对应属性
+			if (parameterMetaObject != null) {
+				// issue #61 do not modify the context when reading
+				return parameterMetaObject.getValue(strKey);
+			}
 
-  public void bind(String name, Object value) {
-    bindings.put(name, value);
-  }
+			return null;
+		}
+	}
 
-  public void appendSql(String sql) {
-    sqlBuilder.append(sql);
-    sqlBuilder.append(" ");
-  }
+	static class ContextAccessor implements PropertyAccessor {
 
-  public String getSql() {
-    return sqlBuilder.toString().trim();
-  }
+		@Override
+		public Object getProperty(Map context, Object target, Object name) throws OgnlException {
+			Map map = (Map) target;
 
-  public int getUniqueNumber() {
-    return uniqueNumber++;
-  }
+			Object result = map.get(name);
+			if (map.containsKey(name) || result != null) {
+				return result;
+			}
 
-  static class ContextMap extends HashMap<String, Object> {
-    private static final long serialVersionUID = 2977601501966151582L;
+			Object parameterObject = map.get(PARAMETER_OBJECT_KEY);
+			if (parameterObject instanceof Map) {
+				return ((Map) parameterObject).get(name);
+			}
 
-    private MetaObject parameterMetaObject;
-    public ContextMap(MetaObject parameterMetaObject) {
-      this.parameterMetaObject = parameterMetaObject;
-    }
+			return null;
+		}
 
-    @Override
-    public Object get(Object key) {
-      String strKey = (String) key;
-      if (super.containsKey(strKey)) {
-        return super.get(strKey);
-      }
+		@Override
+		public void setProperty(Map context, Object target, Object name, Object value) throws OgnlException {
+			Map<Object, Object> map = (Map<Object, Object>) target;
+			map.put(name, value);
+		}
 
-      if (parameterMetaObject != null) {
-        // issue #61 do not modify the context when reading
-        return parameterMetaObject.getValue(strKey);
-      }
+		@Override
+		public String getSourceAccessor(OgnlContext arg0, Object arg1, Object arg2) {
+			return null;
+		}
 
-      return null;
-    }
-  }
-
-  static class ContextAccessor implements PropertyAccessor {
-
-    @Override
-    public Object getProperty(Map context, Object target, Object name)
-        throws OgnlException {
-      Map map = (Map) target;
-
-      Object result = map.get(name);
-      if (map.containsKey(name) || result != null) {
-        return result;
-      }
-
-      Object parameterObject = map.get(PARAMETER_OBJECT_KEY);
-      if (parameterObject instanceof Map) {
-        return ((Map)parameterObject).get(name);
-      }
-
-      return null;
-    }
-
-    @Override
-    public void setProperty(Map context, Object target, Object name, Object value)
-        throws OgnlException {
-      Map<Object, Object> map = (Map<Object, Object>) target;
-      map.put(name, value);
-    }
-
-    @Override
-    public String getSourceAccessor(OgnlContext arg0, Object arg1, Object arg2) {
-      return null;
-    }
-
-    @Override
-    public String getSourceSetter(OgnlContext arg0, Object arg1, Object arg2) {
-      return null;
-    }
-  }
+		@Override
+		public String getSourceSetter(OgnlContext arg0, Object arg1, Object arg2) {
+			return null;
+		}
+	}
 }

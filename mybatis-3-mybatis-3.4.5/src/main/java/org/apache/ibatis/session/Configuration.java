@@ -149,16 +149,16 @@ public class Configuration {
 	protected Class<?> configurationFactory;
 
 	protected final MapperRegistry mapperRegistry = new MapperRegistry(this);
-	//用于管理所有配置的Interceptor对象
+	// 用于管理所有配置的Interceptor对象
 	protected final InterceptorChain interceptorChain = new InterceptorChain();
-	//在Configruation中对TypeAliasRegistry、TypeHandlerRegistry进行初始化
+	// 在Configruation中对TypeAliasRegistry、TypeHandlerRegistry进行初始化
 	protected final TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry();
 	protected final TypeAliasRegistry typeAliasRegistry = new TypeAliasRegistry();
 	protected final LanguageDriverRegistry languageRegistry = new LanguageDriverRegistry();
 
 	protected final Map<String, MappedStatement> mappedStatements = new StrictMap<MappedStatement>(
 			"Mapped Statements collection");
-	//保存缓存对象cache的集合
+	// 保存缓存对象cache的集合
 	protected final Map<String, Cache> caches = new StrictMap<Cache>("Caches collection");
 	protected final Map<String, ResultMap> resultMaps = new StrictMap<ResultMap>("Result Maps collection");
 	protected final Map<String, ParameterMap> parameterMaps = new StrictMap<ParameterMap>("Parameter Maps collection");
@@ -214,7 +214,7 @@ public class Configuration {
 
 		typeAliasRegistry.registerAlias("CGLIB", CglibProxyFactory.class);
 		typeAliasRegistry.registerAlias("JAVASSIST", JavassistProxyFactory.class);
-		//默认使用的是XMLLanguageDriver实现类
+		// 默认使用的是XMLLanguageDriver实现类
 		languageRegistry.setDefaultDriverClass(XMLLanguageDriver.class);
 		languageRegistry.register(RawLanguageDriver.class);
 	}
@@ -589,6 +589,7 @@ public class Configuration {
 		executorType = executorType == null ? defaultExecutorType : executorType;
 		executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
 		Executor executor;
+		//根据参数，选择合适的Executor实现
 		if (ExecutorType.BATCH == executorType) {
 			executor = new BatchExecutor(this, transaction);
 		} else if (ExecutorType.REUSE == executorType) {
@@ -596,9 +597,13 @@ public class Configuration {
 		} else {
 			executor = new SimpleExecutor(this, transaction);
 		}
+		
+		//根据配置决定是否开启二级缓存的功能
 		if (cacheEnabled) {
 			executor = new CachingExecutor(executor);
 		}
+		
+		//通过InterceptorChain.pluginAll()方法创建Executor的代理对象
 		executor = (Executor) interceptorChain.pluginAll(executor);
 		return executor;
 	}
@@ -622,10 +627,10 @@ public class Configuration {
 	public boolean hasKeyGenerator(String id) {
 		return keyGenerators.containsKey(id);
 	}
-	
-	//添加Cache对象到caches集合中
+
+	// 添加Cache对象到caches集合中
 	public void addCache(Cache cache) {
-		//cache的id默认为映射文件的namespace
+		// cache的id默认为映射文件的namespace
 		caches.put(cache.getId(), cache);
 	}
 
@@ -890,36 +895,36 @@ public class Configuration {
 			super(m);
 			this.name = name;
 		}
-		
+
 		@SuppressWarnings("unchecked")
 		public V put(String key, V value) {
-			//如果已经包含了key，则直接抛出异常
+			// 如果已经包含了key，则直接抛出异常
 			if (containsKey(key)) {
 				throw new IllegalArgumentException(name + " already contains value for " + key);
 			}
-			//按照"."将key切分成数组，并将数组的最后一项修改作为shortKey
+			// 按照"."将key切分成数组，并将数组的最后一项修改作为shortKey
 			if (key.contains(".")) {
 				final String shortKey = getShortName(key);
 				if (super.get(shortKey) == null) {
-					//如果不包含指定shortkey,则添加该键值对
+					// 如果不包含指定shortkey,则添加该键值对
 					super.put(shortKey, value);
 				} else {
-					//如果已经存在shortkey,则将value转为Ambiguity对象
+					// 如果已经存在shortkey,则将value转为Ambiguity对象
 					super.put(shortKey, (V) new Ambiguity(shortKey));
 				}
 			}
-			//如果不包含key，则添加键值对
+			// 如果不包含key，则添加键值对
 			return super.put(key, value);
 		}
-		
-		//查找Cache对象
+
+		// 查找Cache对象
 		public V get(Object key) {
 			V value = super.get(key);
-			//如果没有对应的value,则报错
+			// 如果没有对应的value,则报错
 			if (value == null) {
 				throw new IllegalArgumentException(name + " does not contain value for " + key);
 			}
-			//如果value是Ambiguity类型，则报错
+			// 如果value是Ambiguity类型，则报错
 			if (value instanceof Ambiguity) {
 				throw new IllegalArgumentException(((Ambiguity) value).getSubject() + " is ambiguous in " + name
 						+ " (try using the full name including the namespace, or rename one of the entries)");
@@ -931,10 +936,10 @@ public class Configuration {
 			final String[] keyParts = key.split("\\.");
 			return keyParts[keyParts.length - 1];
 		}
-		
-		//静态内部类，表示的是存在二义性的键值对
+
+		// 静态内部类，表示的是存在二义性的键值对
 		protected static class Ambiguity {
-			//记录存在二义性的key
+			// 记录存在二义性的key
 			final private String subject;
 
 			public Ambiguity(String subject) {

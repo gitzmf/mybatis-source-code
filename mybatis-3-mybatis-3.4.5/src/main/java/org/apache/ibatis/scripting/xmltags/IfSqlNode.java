@@ -17,25 +17,32 @@ package org.apache.ibatis.scripting.xmltags;
 
 /**
  * @author Clinton Begin
+ * 对应的动态SQL节点是<if>节点
  */
 public class IfSqlNode implements SqlNode {
-  private final ExpressionEvaluator evaluator;
-  private final String test;
-  private final SqlNode contents;
+	//ExpressionEvaluator对象用于解析<if>节点的test表达式的值
+	private final ExpressionEvaluator evaluator;
+	//记录<if>节点中的test表达式
+	private final String test;
+	//记录了<if>节点的子节点
+	private final SqlNode contents;
 
-  public IfSqlNode(SqlNode contents, String test) {
-    this.test = test;
-    this.contents = contents;
-    this.evaluator = new ExpressionEvaluator();
-  }
-
-  @Override
-  public boolean apply(DynamicContext context) {
-    if (evaluator.evaluateBoolean(test, context.getBindings())) {
-      contents.apply(context);
-      return true;
-    }
-    return false;
-  }
+	public IfSqlNode(SqlNode contents, String test) {
+		this.test = test;
+		this.contents = contents;
+		this.evaluator = new ExpressionEvaluator();
+	}
+	
+	@Override
+	public boolean apply(DynamicContext context) {
+		//检测test属性中记录的表达式
+		if (evaluator.evaluateBoolean(test, context.getBindings())) {
+			//test表达式为true，则执行子节点的apply()方法
+			contents.apply(context);
+			return true;
+		}
+		//注意返回值，表示的是test表达式是否为true
+		return false;
+	}
 
 }

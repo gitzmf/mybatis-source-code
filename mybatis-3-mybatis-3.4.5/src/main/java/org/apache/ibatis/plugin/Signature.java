@@ -22,14 +22,18 @@ import java.lang.annotation.Target;
 
 /**
  * @author Clinton Begin
+ * 表示一个方法签名，唯一确定一个方法
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({})
 public @interface Signature {
-  Class<?> type();
-
-  String method();
-
-  Class<?>[] args();
+	//指定需要拦截的类型
+	Class<?> type();
+	
+	//指定需要拦截的方法
+	String method();
+	
+	//指定了被拦截方法的参数列表
+	Class<?>[] args();
 }

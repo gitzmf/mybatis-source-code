@@ -23,22 +23,25 @@ import java.util.List;
  * @author Clinton Begin
  */
 public class InterceptorChain {
+	
+	//记录了mybatis-config.xml文件中配置的拦截器
+	private final List<Interceptor> interceptors = new ArrayList<Interceptor>();
+	
+	//遍历interceptors集合
+	public Object pluginAll(Object target) {
+		for (Interceptor interceptor : interceptors) {
+			//调用Interceptor.plugin()方法
+			target = interceptor.plugin(target);
+		}
+		return target;
+	}
 
-  private final List<Interceptor> interceptors = new ArrayList<Interceptor>();
+	public void addInterceptor(Interceptor interceptor) {
+		interceptors.add(interceptor);
+	}
 
-  public Object pluginAll(Object target) {
-    for (Interceptor interceptor : interceptors) {
-      target = interceptor.plugin(target);
-    }
-    return target;
-  }
-
-  public void addInterceptor(Interceptor interceptor) {
-    interceptors.add(interceptor);
-  }
-  
-  public List<Interceptor> getInterceptors() {
-    return Collections.unmodifiableList(interceptors);
-  }
+	public List<Interceptor> getInterceptors() {
+		return Collections.unmodifiableList(interceptors);
+	}
 
 }

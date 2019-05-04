@@ -1,0 +1,10 @@
+映射配置文件会被解析成SqlSource对象
+sql节点、文本等，则由SqlNode接口的相应实现表示
+
+组合模式
+OGNL表达式简介
+DynamicContext
+SqlNode
+SqlSpurceBuilder
+DynamicSqlSource
+RawSqlSource

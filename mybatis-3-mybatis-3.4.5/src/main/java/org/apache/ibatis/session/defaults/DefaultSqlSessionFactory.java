@@ -33,6 +33,7 @@ import org.apache.ibatis.transaction.managed.ManagedTransactionFactory;
 
 /**
  * @author Clinton Begin
+ * 具体的工厂类，提供了两种创建DefaultSqlSession对象的方法
  */
 public class DefaultSqlSessionFactory implements SqlSessionFactory {
 
@@ -86,15 +87,21 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
 	public Configuration getConfiguration() {
 		return configuration;
 	}
-
+	
+	//通过数据源获取数据库连接，并创建Executor对象以及DefaultSqlSession对象
 	private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level,
 			boolean autoCommit) {
 		Transaction tx = null;
 		try {
+			//获取mybatis-config.xml配置文件中配置的Environment对象
 			final Environment environment = configuration.getEnvironment();
+			//获取TransactionFactory对象
 			final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+			//创建Transaction对象
 			tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
+			//根据配置创建Executor对象
 			final Executor executor = configuration.newExecutor(tx, execType);
+			//创建DefaultSqlSession对象
 			return new DefaultSqlSession(configuration, executor, autoCommit);
 		} catch (Exception e) {
 			closeTransaction(tx); // may have fetched a connection so lets call
@@ -104,21 +111,29 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
 			ErrorContext.instance().reset();
 		}
 	}
-
+	
+	//根据用户提供的数据库连接对象创建
 	private SqlSession openSessionFromConnection(ExecutorType execType, Connection connection) {
 		try {
 			boolean autoCommit;
 			try {
+				//获取当前的连接事务是否为自动提交
 				autoCommit = connection.getAutoCommit();
 			} catch (SQLException e) {
 				// Failover to true, as most poor drivers
 				// or databases won't support transactions
+				//当前数据库驱动提供的连接不支持事务，可能会抛出异常
 				autoCommit = true;
 			}
+			//获取mybatis-config.xml配置文件中配置的Environment对象
 			final Environment environment = configuration.getEnvironment();
+			//获取TransactionFactory对象
 			final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+			//创建Transaction对象
 			final Transaction tx = transactionFactory.newTransaction(connection);
+			//根据配置创建Executor对象
 			final Executor executor = configuration.newExecutor(tx, execType);
+			//创建DefaultSqlSession对象
 			return new DefaultSqlSession(configuration, executor, autoCommit);
 		} catch (Exception e) {
 			throw ExceptionFactory.wrapException("Error opening session.  Cause: " + e, e);

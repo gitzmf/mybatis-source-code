@@ -26,11 +26,14 @@ import java.util.List;
  * @author Clinton Begin
  */
 public interface ResultSetHandler {
-
-  <E> List<E> handleResultSets(Statement stmt) throws SQLException;
-
-  <E> Cursor<E> handleCursorResultSets(Statement stmt) throws SQLException;
-
-  void handleOutputParameters(CallableStatement cs) throws SQLException;
+	
+	//处理结果集，生成相应的结果对象集合
+	<E> List<E> handleResultSets(Statement stmt) throws SQLException;
+	
+	//处理结果集，返回相应的游标对象
+	<E> Cursor<E> handleCursorResultSets(Statement stmt) throws SQLException;
+	
+	//处理存储过程的输出参数
+	void handleOutputParameters(CallableStatement cs) throws SQLException;
 
 }

@@ -29,27 +29,27 @@ import org.apache.ibatis.session.ResultHandler;
  * @author Clinton Begin
  */
 public interface StatementHandler {
+	
+	//从连接中获取一个Statement
+	Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException;
+	
+	//绑定statement执行时所需的实参
+	void parameterize(Statement statement) throws SQLException;
+	
+	//批量执行sql语句
+	void batch(Statement statement) throws SQLException;
+	
+	//执行了insert/update/delete语句
+	int update(Statement statement) throws SQLException;
+	
+	//执行select语句
+	<E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException;
 
-  Statement prepare(Connection connection, Integer transactionTimeout)
-      throws SQLException;
+	<E> Cursor<E> queryCursor(Statement statement) throws SQLException;
 
-  void parameterize(Statement statement)
-      throws SQLException;
-
-  void batch(Statement statement)
-      throws SQLException;
-
-  int update(Statement statement)
-      throws SQLException;
-
-  <E> List<E> query(Statement statement, ResultHandler resultHandler)
-      throws SQLException;
-
-  <E> Cursor<E> queryCursor(Statement statement)
-      throws SQLException;
-
-  BoundSql getBoundSql();
-
-  ParameterHandler getParameterHandler();
+	BoundSql getBoundSql();
+	
+	//获取其中封装的ParameterHandler
+	ParameterHandler getParameterHandler();
 
 }

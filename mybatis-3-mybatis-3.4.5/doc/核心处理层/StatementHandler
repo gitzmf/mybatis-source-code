@@ -1,0 +1,5 @@
+功能：
+	创建Statement对象，为sql语句绑定实参，执行select、
+	insert、update、delete等多种类型的sql语句，批量执行sql语句
+	将结果集映射成结果对象
+	

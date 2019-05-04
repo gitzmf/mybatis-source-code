@@ -33,64 +33,66 @@ import org.apache.ibatis.session.RowBounds;
  * @author Clinton Begin
  */
 public class RoutingStatementHandler implements StatementHandler {
+	
+	//底层封装的真正的StatementHandler对象
+	private final StatementHandler delegate;
 
-  private final StatementHandler delegate;
+	public RoutingStatementHandler(Executor executor, MappedStatement ms, Object parameter, RowBounds rowBounds,
+			ResultHandler resultHandler, BoundSql boundSql) {
+		//根据MappedStatement的配置，生成一个对应的StatementHandler对象，并设置到delegate字段中
+		switch (ms.getStatementType()) {
+		case STATEMENT:
+			delegate = new SimpleStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
+			break;
+		case PREPARED:
+			delegate = new PreparedStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
+			break;
+		case CALLABLE:
+			delegate = new CallableStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
+			break;
+		default:
+			throw new ExecutorException("Unknown statement type: " + ms.getStatementType());
+		}
 
-  public RoutingStatementHandler(Executor executor, MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
+	}
 
-    switch (ms.getStatementType()) {
-      case STATEMENT:
-        delegate = new SimpleStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
-        break;
-      case PREPARED:
-        delegate = new PreparedStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
-        break;
-      case CALLABLE:
-        delegate = new CallableStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
-        break;
-      default:
-        throw new ExecutorException("Unknown statement type: " + ms.getStatementType());
-    }
+	@Override
+	public Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException {
+		return delegate.prepare(connection, transactionTimeout);
+	}
 
-  }
+	@Override
+	public void parameterize(Statement statement) throws SQLException {
+		delegate.parameterize(statement);
+	}
 
-  @Override
-  public Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException {
-    return delegate.prepare(connection, transactionTimeout);
-  }
+	@Override
+	public void batch(Statement statement) throws SQLException {
+		delegate.batch(statement);
+	}
 
-  @Override
-  public void parameterize(Statement statement) throws SQLException {
-    delegate.parameterize(statement);
-  }
+	@Override
+	public int update(Statement statement) throws SQLException {
+		return delegate.update(statement);
+	}
 
-  @Override
-  public void batch(Statement statement) throws SQLException {
-    delegate.batch(statement);
-  }
+	@Override
+	public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
+		return delegate.<E>query(statement, resultHandler);
+	}
 
-  @Override
-  public int update(Statement statement) throws SQLException {
-    return delegate.update(statement);
-  }
+	@Override
+	public <E> Cursor<E> queryCursor(Statement statement) throws SQLException {
+		return delegate.queryCursor(statement);
+	}
 
-  @Override
-  public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
-    return delegate.<E>query(statement, resultHandler);
-  }
+	@Override
+	public BoundSql getBoundSql() {
+		return delegate.getBoundSql();
+	}
 
-  @Override
-  public <E> Cursor<E> queryCursor(Statement statement) throws SQLException {
-    return delegate.queryCursor(statement);
-  }
-
-  @Override
-  public BoundSql getBoundSql() {
-    return delegate.getBoundSql();
-  }
-
-  @Override
-  public ParameterHandler getParameterHandler() {
-    return delegate.getParameterHandler();
-  }
+	@Override
+	public ParameterHandler getParameterHandler() {
+		return delegate.getParameterHandler();
+	}
 }

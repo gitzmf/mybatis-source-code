@@ -19,5 +19,8 @@ package org.apache.ibatis.scripting.xmltags;
  * @author Clinton Begin
  */
 public interface SqlNode {
-  boolean apply(DynamicContext context);
+	//该接口定义的唯一的方法，会根据用户传入的实参，参数解析该SqlNode所记录的动态sql节点
+	//并调用DynamicContext的appendSql()方法追加sql片段，等SqlNode解析完成后，可以得到
+	//一条完整的SQL语句
+	boolean apply(DynamicContext context);
 }

@@ -36,63 +36,71 @@ import org.apache.ibatis.session.RowBounds;
  */
 public class SimpleStatementHandler extends BaseStatementHandler {
 
-  public SimpleStatementHandler(Executor executor, MappedStatement mappedStatement, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
-    super(executor, mappedStatement, parameter, rowBounds, resultHandler, boundSql);
-  }
+	public SimpleStatementHandler(Executor executor, MappedStatement mappedStatement, Object parameter,
+			RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
+		super(executor, mappedStatement, parameter, rowBounds, resultHandler, boundSql);
+	}
 
-  @Override
-  public int update(Statement statement) throws SQLException {
-    String sql = boundSql.getSql();
-    Object parameterObject = boundSql.getParameterObject();
-    KeyGenerator keyGenerator = mappedStatement.getKeyGenerator();
-    int rows;
-    if (keyGenerator instanceof Jdbc3KeyGenerator) {
-      statement.execute(sql, Statement.RETURN_GENERATED_KEYS);
-      rows = statement.getUpdateCount();
-      keyGenerator.processAfter(executor, mappedStatement, statement, parameterObject);
-    } else if (keyGenerator instanceof SelectKeyGenerator) {
-      statement.execute(sql);
-      rows = statement.getUpdateCount();
-      keyGenerator.processAfter(executor, mappedStatement, statement, parameterObject);
-    } else {
-      statement.execute(sql);
-      rows = statement.getUpdateCount();
-    }
-    return rows;
-  }
+	@Override
+	public int update(Statement statement) throws SQLException {
+		String sql = boundSql.getSql();
+		Object parameterObject = boundSql.getParameterObject();
+		KeyGenerator keyGenerator = mappedStatement.getKeyGenerator();
+		int rows;
+		if (keyGenerator instanceof Jdbc3KeyGenerator) {
+			//执行sql语句
+			statement.execute(sql, Statement.RETURN_GENERATED_KEYS);
+			//获取受影响的行数
+			rows = statement.getUpdateCount();
+			keyGenerator.processAfter(executor, mappedStatement, statement, parameterObject);
+		} else if (keyGenerator instanceof SelectKeyGenerator) {
+			statement.execute(sql);
+			rows = statement.getUpdateCount();
+			keyGenerator.processAfter(executor, mappedStatement, statement, parameterObject);
+		} else {
+			statement.execute(sql);
+			rows = statement.getUpdateCount();
+		}
+		return rows;
+	}
 
-  @Override
-  public void batch(Statement statement) throws SQLException {
-    String sql = boundSql.getSql();
-    statement.addBatch(sql);
-  }
+	@Override
+	public void batch(Statement statement) throws SQLException {
+		String sql = boundSql.getSql();
+		statement.addBatch(sql);
+	}
 
-  @Override
-  public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
-    String sql = boundSql.getSql();
-    statement.execute(sql);
-    return resultSetHandler.<E>handleResultSets(statement);
-  }
+	@Override
+	public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
+		//获取sql语句
+		String sql = boundSql.getSql();
+		//执行sql语句
+		statement.execute(sql);
+		//映射结果集
+		return resultSetHandler.<E>handleResultSets(statement);
+	}
 
-  @Override
-  public <E> Cursor<E> queryCursor(Statement statement) throws SQLException {
-    String sql = boundSql.getSql();
-    statement.execute(sql);
-    return resultSetHandler.<E>handleCursorResultSets(statement);
-  }
+	@Override
+	public <E> Cursor<E> queryCursor(Statement statement) throws SQLException {
+		String sql = boundSql.getSql();
+		statement.execute(sql);
+		return resultSetHandler.<E>handleCursorResultSets(statement);
+	}
 
-  @Override
-  protected Statement instantiateStatement(Connection connection) throws SQLException {
-    if (mappedStatement.getResultSetType() != null) {
-      return connection.createStatement(mappedStatement.getResultSetType().getValue(), ResultSet.CONCUR_READ_ONLY);
-    } else {
-      return connection.createStatement();
-    }
-  }
+	@Override
+	protected Statement instantiateStatement(Connection connection) throws SQLException {
+		//设置结果集是否可以滚动及其游标是否可以是上下移动，设置结果集是否可以更新
+		if (mappedStatement.getResultSetType() != null) {
+			return connection.createStatement(mappedStatement.getResultSetType().getValue(),
+					ResultSet.CONCUR_READ_ONLY);
+		} else {
+			return connection.createStatement();
+		}
+	}
 
-  @Override
-  public void parameterize(Statement statement) throws SQLException {
-    // N/A
-  }
+	@Override
+	public void parameterize(Statement statement) throws SQLException {
+		// N/A
+	}
 
 }

@@ -17,18 +17,20 @@ package org.apache.ibatis.scripting.xmltags;
 
 /**
  * @author Clinton Begin
+ * 使用text字段记录了对应的非动态SQL语句节点，其apply()方法直接将text
+ * 字段追加到DynamicContext.sqlBuilder字段中
  */
 public class StaticTextSqlNode implements SqlNode {
-  private final String text;
+	private final String text;
 
-  public StaticTextSqlNode(String text) {
-    this.text = text;
-  }
+	public StaticTextSqlNode(String text) {
+		this.text = text;
+	}
 
-  @Override
-  public boolean apply(DynamicContext context) {
-    context.appendSql(text);
-    return true;
-  }
+	@Override
+	public boolean apply(DynamicContext context) {
+		context.appendSql(text);
+		return true;
+	}
 
 }
